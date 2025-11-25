@@ -97,9 +97,10 @@ def get_model(config):
         params['freq_weights'] = freq_weights
     
     # Load validation prior if specified
-    if params.pop('use_val_prior', False) and 'val_prior_path' in config['data']:
-        val_prior = torch.load(config['data']['val_prior_path'])
+    if params.pop('use_val_prior', False) and 'val_strong_prior_path' in config['data']:
+        val_prior = torch.load(config['data']['val_strong_prior_path'])
         params['val_prior'] = val_prior
+        print(f"Loaded validation prior for calibration")
     
     if model_name == 'transformer':
         model = TransformerNextLocPredictor(**params)

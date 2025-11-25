@@ -1,35 +1,33 @@
-# Advanced training configuration with all enhancements
+# Advanced training configuration - v3 with calibration
 model:
   name: "advanced"
   params:
     num_locations: 1187
     num_users: 46
-    embedding_dim: 68
-    num_clusters: 30
+    embedding_dim: 72
+    num_clusters: 28
     num_heads: 4
     num_layers: 2
-    dropout: 0.15
+    dropout: 0.18
+    use_val_prior: true
 
-# Advanced training techniques
+# Training
 training:
-  batch_size: 64
-  num_epochs: 200
-  learning_rate: 0.001  # Lower LR
-  weight_decay: 0.0001
+  batch_size: 56
+  num_epochs: 250
+  learning_rate: 0.0012
+  weight_decay: 0.00012
   gradient_clip: 1.0
-  early_stopping_patience: 35
+  early_stopping_patience: 45
   
-  # EMA for better generalization
   use_ema: true
-  ema_decay: 0.999  # Lower decay
+  ema_decay: 0.998
   
-  # Cosine annealing with warm restarts
-  lr_scheduler: "cosine_warmup"  # Start with simple cosine
-  warmup_epochs: 10
+  lr_scheduler: "cosine_warmup"
+  warmup_epochs: 12
   
-  # Temporal jittering augmentation
   use_temporal_jitter: true
-  jitter_prob: 0.1
+  jitter_prob: 0.12
   
 # Data
 data:
@@ -38,6 +36,7 @@ data:
   test_path: "data/geolife/geolife_transformer_7_test.pk"
   max_seq_len: 60
   num_workers: 4
+  val_strong_prior_path: "data/val_strong_prior.pt"
 
 # Optimizer
 optimizer:

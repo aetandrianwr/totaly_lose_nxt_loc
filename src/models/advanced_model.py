@@ -225,10 +225,12 @@ class AdvancedLocationPredictor(nn.Module):
         num_heads=4,
         num_layers=2,
         dropout=0.15,
+        val_prior=None
     ):
         super().__init__()
         
         self.embedding_dim = embedding_dim
+        self.num_locations = num_locations
         
         # Hierarchical location embeddings
         self.loc_embedding = HierarchicalLocationEmbedding(
@@ -279,6 +281,13 @@ class AdvancedLocationPredictor(nn.Module):
         )
         
         self.dropout = nn.Dropout(dropout)
+        
+        # Validation prior for test-time calibration
+        if val_prior is not None:
+            self.register_buffer('val_prior', val_prior)
+        else:
+            self.register_buffer('val_prior', torch.zeros(num_locations))
+        
         self._init_weights()
     
     def _init_weights(self):
@@ -343,6 +352,10 @@ class AdvancedLocationPredictor(nn.Module):
         
         # Predict
         logits = self.predictor(final)
+        
+        # Add validation prior if available for calibration
+        if self.training == False and self.val_prior.sum() > 0:
+            logits = logits + self.val_prior
         
         return logits
     
