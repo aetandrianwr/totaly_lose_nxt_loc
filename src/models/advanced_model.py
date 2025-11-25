@@ -220,11 +220,11 @@ class AdvancedLocationPredictor(nn.Module):
         self,
         num_locations=1187,
         num_users=46,
-        embedding_dim=68,
+        embedding_dim=72,
         num_clusters=30,
         num_heads=4,
         num_layers=2,
-        dropout=0.15,
+        dropout=0.18,
         val_prior=None
     ):
         super().__init__()
