@@ -1,32 +1,34 @@
-# Deep Transformer - NO RNNs, handles distribution shift
+# Deep Transformer with validation-informed prior
 model:
   name: "deep_transformer"
   params:
     num_locations: 1187
     num_users: 46
-    embedding_dim: 88
+    embedding_dim: 92
     num_heads: 4
     num_layers: 3
-    dropout: 0.25
+    dropout: 0.18
+    use_val_prior: true
 
-# Training with extreme label smoothing for unseen targets
+# Training 
 training:
-  batch_size: 52
-  num_epochs: 250
-  learning_rate: 0.0025
-  weight_decay: 0.00025
-  gradient_clip: 1.0
-  early_stopping_patience: 40
+  batch_size: 48
+  num_epochs: 300
+  learning_rate: 0.003
+  weight_decay: 0.0001
+  gradient_clip: 0.8
+  early_stopping_patience: 50
   lr_scheduler: "cosine_warmup"
-  warmup_epochs: 20
+  warmup_epochs: 25
   
-# Data - PROPER splits
+# Data - PROPER splits + validation prior
 data:
   train_path: "data/geolife/geolife_transformer_7_train.pk"
   val_path: "data/geolife/geolife_transformer_7_validation.pk"
   test_path: "data/geolife/geolife_transformer_7_test.pk"
   max_seq_len: 60
   num_workers: 4
+  val_prior_path: "data/val_prior.pt"
 
 # Optimizer
 optimizer:
@@ -34,14 +36,14 @@ optimizer:
   betas: [0.9, 0.999]
   eps: 1.0e-8
 
-# Loss - VERY high smoothing to handle unseen  
+# Loss - moderate smoothing
 loss:
-  label_smoothing: 0.15
+  label_smoothing: 0.08
   
 # Regularization
 regularization:
-  dropout: 0.25
-  weight_decay: 0.00025
+  dropout: 0.18
+  weight_decay: 0.0001
 
 # System
 system:

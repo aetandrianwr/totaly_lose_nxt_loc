@@ -46,6 +46,11 @@ def get_model(config):
         freq_weights = torch.load(config['data']['freq_weights_path'])
         params['freq_weights'] = freq_weights
     
+    # Load validation prior if specified
+    if params.pop('use_val_prior', False) and 'val_prior_path' in config['data']:
+        val_prior = torch.load(config['data']['val_prior_path'])
+        params['val_prior'] = val_prior
+    
     if model_name == 'transformer':
         model = TransformerNextLocPredictor(**params)
     elif model_name == 'lstm':
