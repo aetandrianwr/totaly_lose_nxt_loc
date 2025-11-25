@@ -1,0 +1,59 @@
+# Model configuration
+model:
+  name: "gru_attention"  # Options: transformer, lstm, gru_attention
+  params:
+    num_locations: 1187
+    num_users: 46
+    embedding_dim: 96
+    hidden_dim: 192
+    num_layers: 2
+    num_heads: 3
+    dropout: 0.25
+    max_seq_len: 60
+
+# Training configuration
+training:
+  batch_size: 128
+  num_epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  gradient_clip: 1.0
+  early_stopping_patience: 15
+  lr_scheduler: "cosine"  # Options: cosine, plateau, step
+  warmup_epochs: 5
+  
+# Data configuration
+data:
+  train_path: "data/geolife/geolife_transformer_7_train.pk"
+  val_path: "data/geolife/geolife_transformer_7_validation.pk"
+  test_path: "data/geolife/geolife_transformer_7_test.pk"
+  max_seq_len: 60
+  num_workers: 4
+
+# Optimization
+optimizer:
+  name: "adamw"  # Options: adam, adamw, sgd
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+# Loss
+loss:
+  label_smoothing: 0.1
+  
+# Regularization
+regularization:
+  dropout: 0.25
+  weight_decay: 0.0001
+
+# System
+system:
+  seed: 42
+  device: "cuda"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_freq: 5
+  
+# Logging
+logging:
+  use_tensorboard: true
+  print_freq: 50
