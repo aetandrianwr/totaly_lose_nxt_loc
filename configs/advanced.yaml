@@ -1,0 +1,68 @@
+# Advanced training configuration with all enhancements
+model:
+  name: "advanced"
+  params:
+    num_locations: 1187
+    num_users: 46
+    embedding_dim: 68
+    num_clusters: 30
+    num_heads: 4
+    num_layers: 2
+    dropout: 0.15
+
+# Advanced training techniques
+training:
+  batch_size: 64
+  num_epochs: 200
+  learning_rate: 0.001  # Lower LR
+  weight_decay: 0.0001
+  gradient_clip: 1.0
+  early_stopping_patience: 35
+  
+  # EMA for better generalization
+  use_ema: true
+  ema_decay: 0.999  # Lower decay
+  
+  # Cosine annealing with warm restarts
+  lr_scheduler: "cosine_warmup"  # Start with simple cosine
+  warmup_epochs: 10
+  
+  # Temporal jittering augmentation
+  use_temporal_jitter: true
+  jitter_prob: 0.1
+  
+# Data
+data:
+  train_path: "data/geolife/geolife_transformer_7_train.pk"
+  val_path: "data/geolife/geolife_transformer_7_validation.pk"
+  test_path: "data/geolife/geolife_transformer_7_test.pk"
+  max_seq_len: 60
+  num_workers: 4
+
+# Optimizer
+optimizer:
+  name: "adamw"
+  betas: [0.9, 0.98]
+  eps: 1.0e-8
+
+# Loss
+loss:
+  label_smoothing: 0.05
+  
+# Regularization
+regularization:
+  dropout: 0.15
+  weight_decay: 0.0001
+
+# System
+system:
+  seed: 42
+  device: "cuda"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_freq: 5
+  
+# Logging
+logging:
+  use_tensorboard: true
+  print_freq: 50

@@ -25,7 +25,57 @@ from models.graph_model import GraphTransitionPredictor
 from models.adaptive_model import AdaptiveLocationPredictor
 from models.modern_transformer import ModernTransformerPredictor
 from models.deep_transformer import DeepTransformerPredictor
+from models.advanced_model import AdvancedLocationPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
+
+
+class EMA:
+    """Exponential Moving Average of model weights for better generalization"""
+    def __init__(self, model, decay=0.9995):
+        self.model = model
+        self.decay = decay
+        self.shadow = {}
+        self.backup = {}
+        self.register()
+    
+    def register(self):
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                self.shadow[name] = param.data.clone()
+    
+    def update(self):
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                new_average = (1.0 - self.decay) * param.data + self.decay * self.shadow[name]
+                self.shadow[name] = new_average.clone()
+    
+    def apply_shadow(self):
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                self.backup[name] = param.data
+                param.data = self.shadow[name]
+    
+    def restore(self):
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                param.data = self.backup[name]
+        self.backup = {}
+
+
+def temporal_jitter_augment(batch, jitter_prob=0.15):
+    """Apply temporal jittering augmentation"""
+    if random.random() > jitter_prob:
+        return batch
+    
+    # Jitter start times slightly
+    jitter = torch.randint(-10, 11, batch['start_min_seq'].shape, device=batch['start_min_seq'].device)
+    batch['start_min_seq'] = (batch['start_min_seq'] + jitter).clamp(0, 1439)
+    
+    # Jitter durations slightly  
+    dur_jitter = torch.randint(-5, 6, batch['dur_seq'].shape, device=batch['dur_seq'].device)
+    batch['dur_seq'] = (batch['dur_seq'] + dur_jitter).clamp(1, 500)
+    
+    return batch
 
 
 def set_seed(seed):
@@ -73,13 +123,15 @@ def get_model(config):
         model = ModernTransformerPredictor(**params)
     elif model_name == 'deep_transformer':
         model = DeepTransformerPredictor(**params)
+    elif model_name == 'advanced':
+        model = AdvancedLocationPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
     return model
 
 
-def train_epoch(model, train_loader, criterion, optimizer, device, config):
+def train_epoch(model, train_loader, criterion, optimizer, device, config, ema=None):
     model.train()
     total_loss = 0
     
@@ -88,8 +140,15 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config):
         "rr": 0, "ndcg": 0, "f1": 0, "total": 0
     }
     
+    use_jitter = config['training'].get('use_temporal_jitter', False)
+    jitter_prob = config['training'].get('jitter_prob', 0.15)
+    
     pbar = tqdm(train_loader, desc='Training')
     for batch_idx, batch in enumerate(pbar):
+        # Apply temporal jittering augmentation
+        if use_jitter and random.random() < jitter_prob:
+            batch = temporal_jitter_augment(batch, 1.0)  # Always jitter if selected
+        
         # Move to device
         loc_seq = batch['loc_seq'].to(device)
         user_seq = batch['user_seq'].to(device)
@@ -113,6 +172,10 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config):
             torch.nn.utils.clip_grad_norm_(model.parameters(), config['training']['gradient_clip'])
         
         optimizer.step()
+        
+        # Update EMA
+        if ema is not None:
+            ema.update()
         
         # Metrics
         total_loss += loss.item()
@@ -252,6 +315,19 @@ def train(config, args):
                 return 0.5 * (1 + math.cos(math.pi * progress))
         
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    elif config['training']['lr_scheduler'] == 'cosine_restart':
+        # Cosine annealing with warm restarts
+        warmup_epochs = config['training'].get('warmup_epochs', 5)
+        restart_period = config['training'].get('restart_period', 40)
+        
+        def lr_lambda(epoch):
+            if epoch < warmup_epochs:
+                return epoch / warmup_epochs
+            else:
+                epoch_in_cycle = (epoch - warmup_epochs) % restart_period
+                return 0.5 * (1 + math.cos(math.pi * epoch_in_cycle / restart_period))
+        
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     elif config['training']['lr_scheduler'] == 'plateau':
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
@@ -260,6 +336,14 @@ def train(config, args):
             patience=5,
             verbose=True
         )
+    else:
+        scheduler = None
+    
+    # EMA for better generalization
+    ema = None
+    if config['training'].get('use_ema', False):
+        ema = EMA(model, decay=config['training'].get('ema_decay', 0.9995))
+        print(f"Using EMA with decay={config['training'].get('ema_decay', 0.9995)}")
     
     # Training loop
     best_val_acc = 0
@@ -271,10 +355,14 @@ def train(config, args):
         print(f"\nEpoch {epoch+1}/{config['training']['num_epochs']}")
         
         # Train
-        train_loss, train_perf = train_epoch(model, train_loader, criterion, optimizer, device, config)
+        train_loss, train_perf = train_epoch(model, train_loader, criterion, optimizer, device, config, ema)
         
-        # Validate
+        # Validate with EMA weights if available
+        if ema is not None:
+            ema.apply_shadow()
         val_loss, val_perf = evaluate(model, val_loader, criterion, device)
+        if ema is not None:
+            ema.restore()
         
         # Update scheduler
         if config['training']['lr_scheduler'] in ['cosine', 'cosine_warmup']:
