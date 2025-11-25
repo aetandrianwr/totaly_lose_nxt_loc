@@ -6,6 +6,7 @@ import argparse
 import os
 import random
 import numpy as np
+import math
 from tqdm import tqdm
 from pathlib import Path
 import sys
@@ -16,6 +17,7 @@ from data.dataset import get_dataloaders
 from models.transformer_model import TransformerNextLocPredictor
 from models.lstm_model import LSTMNextLocPredictor
 from models.gru_attention_model import GRUWithAttention
+from models.enhanced_model import EnhancedNextLocPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -38,6 +40,8 @@ def get_model(config):
         model = LSTMNextLocPredictor(**params)
     elif model_name == 'gru_attention':
         model = GRUWithAttention(**params)
+    elif model_name == 'enhanced':
+        model = EnhancedNextLocPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
@@ -199,6 +203,17 @@ def train(config, args):
             T_max=config['training']['num_epochs'],
             eta_min=1e-6
         )
+    elif config['training']['lr_scheduler'] == 'cosine_warmup':
+        warmup_epochs = config['training'].get('warmup_epochs', 5)
+        
+        def lr_lambda(epoch):
+            if epoch < warmup_epochs:
+                return (epoch + 1) / warmup_epochs
+            else:
+                progress = (epoch - warmup_epochs) / (config['training']['num_epochs'] - warmup_epochs)
+                return 0.5 * (1 + math.cos(math.pi * progress))
+        
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     elif config['training']['lr_scheduler'] == 'plateau':
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
@@ -224,7 +239,7 @@ def train(config, args):
         val_loss, val_perf = evaluate(model, val_loader, criterion, device)
         
         # Update scheduler
-        if config['training']['lr_scheduler'] == 'cosine':
+        if config['training']['lr_scheduler'] in ['cosine', 'cosine_warmup']:
             scheduler.step()
         elif config['training']['lr_scheduler'] == 'plateau':
             scheduler.step(val_perf['acc@1'])
