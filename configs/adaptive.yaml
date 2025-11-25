@@ -1,0 +1,57 @@
+# Adaptive pattern-based model
+model:
+  name: "adaptive"
+  params:
+    num_locations: 1187
+    num_users: 46
+    embedding_dim: 84
+    hidden_dim: 136
+    num_heads: 4
+    dropout: 0.22
+
+# Training - focus on generalization to unseen targets
+training:
+  batch_size: 68
+  num_epochs: 120
+  learning_rate: 0.0015
+  weight_decay: 0.00015
+  gradient_clip: 1.0
+  early_stopping_patience: 25
+  lr_scheduler: "cosine_warmup"
+  warmup_epochs: 12
+  
+# Data
+data:
+  train_path: "data/geolife/geolife_transformer_7_train.pk"
+  val_path: "data/geolife/geolife_transformer_7_validation.pk"
+  test_path: "data/geolife/geolife_transformer_7_test.pk"
+  max_seq_len: 60
+  num_workers: 4
+
+# Optimizer
+optimizer:
+  name: "adamw"
+  betas: [0.9, 0.98]
+  eps: 1.0e-9
+
+# Loss - higher smoothing to handle unseen targets
+loss:
+  label_smoothing: 0.08
+  
+# Regularization
+regularization:
+  dropout: 0.22
+  weight_decay: 0.00015
+
+# System
+system:
+  seed: 42
+  device: "cuda"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_freq: 5
+  
+# Logging
+logging:
+  use_tensorboard: true
+  print_freq: 50

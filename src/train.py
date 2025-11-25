@@ -21,6 +21,8 @@ from models.enhanced_model import EnhancedNextLocPredictor
 from models.improved_model import ImprovedNextLocPredictor
 from models.transition_model import LocationTransitionModel, FocalLoss
 from models.optimized_model import OptimizedPredictor
+from models.graph_model import GraphTransitionPredictor
+from models.adaptive_model import AdaptiveLocationPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -35,7 +37,12 @@ def set_seed(seed):
 
 def get_model(config):
     model_name = config['model']['name']
-    params = config['model']['params']
+    params = config['model']['params'].copy()
+    
+    # Load frequency weights if specified
+    if params.pop('use_freq_weights', False) and 'freq_weights_path' in config['data']:
+        freq_weights = torch.load(config['data']['freq_weights_path'])
+        params['freq_weights'] = freq_weights
     
     if model_name == 'transformer':
         model = TransformerNextLocPredictor(**params)
@@ -51,6 +58,10 @@ def get_model(config):
         model = LocationTransitionModel(**params)
     elif model_name == 'optimized':
         model = OptimizedPredictor(**params)
+    elif model_name == 'graph':
+        model = GraphTransitionPredictor(**params)
+    elif model_name == 'adaptive':
+        model = AdaptiveLocationPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
