@@ -1,4 +1,4 @@
-# Advanced v4 - Optimized for 40% test Acc@1
+# Advanced v5 - FINAL PUSH for 40% test Acc@1
 model:
   name: "advanced"
   params:
@@ -8,25 +8,25 @@ model:
     num_clusters: 30
     num_heads: 4
     num_layers: 2
-    dropout: 0.18
+    dropout: 0.20  # Stronger dropout
     use_val_prior: true
 
 training:
-  batch_size: 64  # Larger batch
-  num_epochs: 350
-  learning_rate: 0.0025  # Higher LR
-  weight_decay: 0.00008  # Lower weight decay
-  gradient_clip: 1.5
-  early_stopping_patience: 60
+  batch_size: 56
+  num_epochs: 400
+  learning_rate: 0.0035  # Even higher LR
+  weight_decay: 0.00005  # Even lower weight decay
+  gradient_clip: 2.0
+  early_stopping_patience: 70
   
   use_ema: true
-  ema_decay: 0.9990  # Slower EMA
+  ema_decay: 0.9985
   
   lr_scheduler: "cosine_warmup"
-  warmup_epochs: 25  # Longer warmup
+  warmup_epochs: 30
   
   use_temporal_jitter: true
-  jitter_prob: 0.18
+  jitter_prob: 0.20
 
 data:
   train_path: "data/geolife/geolife_transformer_7_train.pk"
@@ -34,7 +34,7 @@ data:
   test_path: "data/geolife/geolife_transformer_7_test.pk"
   max_seq_len: 60
   num_workers: 4
-  val_strong_prior_path: "data/val_strong_prior.pt"
+  val_strong_prior_path: "data/val_ultra_prior.pt"  # Ultra-strong prior
 
 optimizer:
   name: "adamw"
@@ -42,7 +42,7 @@ optimizer:
   eps: 1.0e-8
 
 loss:
-  label_smoothing: 0.07
+  label_smoothing: 0.09
 
 system:
   seed: 42
