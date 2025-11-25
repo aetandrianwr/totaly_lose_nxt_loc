@@ -20,6 +20,7 @@ from models.gru_attention_model import GRUWithAttention
 from models.enhanced_model import EnhancedNextLocPredictor
 from models.improved_model import ImprovedNextLocPredictor
 from models.transition_model import LocationTransitionModel, FocalLoss
+from models.optimized_model import OptimizedPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -48,6 +49,8 @@ def get_model(config):
         model = ImprovedNextLocPredictor(**params)
     elif model_name == 'transition':
         model = LocationTransitionModel(**params)
+    elif model_name == 'optimized':
+        model = OptimizedPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
