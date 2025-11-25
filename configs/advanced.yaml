@@ -1,32 +1,32 @@
-# Advanced v5 - FINAL PUSH for 40% test Acc@1
+# Advanced v7 - Balanced between v4 and v6
 model:
   name: "advanced"
   params:
     num_locations: 1187
     num_users: 46
-    embedding_dim: 72
-    num_clusters: 30
+    embedding_dim: 68  # Between 64 and 72
+    num_clusters: 29  # Between 28 and 30
     num_heads: 4
     num_layers: 2
-    dropout: 0.20  # Stronger dropout
+    dropout: 0.24  # Between 0.18 and 0.30
     use_val_prior: true
 
 training:
-  batch_size: 56
-  num_epochs: 400
-  learning_rate: 0.0035  # Even higher LR
-  weight_decay: 0.00005  # Even lower weight decay
-  gradient_clip: 2.0
-  early_stopping_patience: 70
+  batch_size: 64
+  num_epochs: 450
+  learning_rate: 0.0030
+  weight_decay: 0.00015  # Between 0.00008 and 0.0003
+  gradient_clip: 1.3
+  early_stopping_patience: 80
   
   use_ema: true
-  ema_decay: 0.9985
+  ema_decay: 0.998
   
   lr_scheduler: "cosine_warmup"
-  warmup_epochs: 30
+  warmup_epochs: 28
   
   use_temporal_jitter: true
-  jitter_prob: 0.20
+  jitter_prob: 0.22
 
 data:
   train_path: "data/geolife/geolife_transformer_7_train.pk"
@@ -34,7 +34,7 @@ data:
   test_path: "data/geolife/geolife_transformer_7_test.pk"
   max_seq_len: 60
   num_workers: 4
-  val_strong_prior_path: "data/val_ultra_prior.pt"  # Ultra-strong prior
+  val_strong_prior_path: "data/val_ultra_prior.pt"
 
 optimizer:
   name: "adamw"
@@ -42,7 +42,7 @@ optimizer:
   eps: 1.0e-8
 
 loss:
-  label_smoothing: 0.09
+  label_smoothing: 0.10
 
 system:
   seed: 42
