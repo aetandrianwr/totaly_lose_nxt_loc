@@ -23,6 +23,8 @@ from models.transition_model import LocationTransitionModel, FocalLoss
 from models.optimized_model import OptimizedPredictor
 from models.graph_model import GraphTransitionPredictor
 from models.adaptive_model import AdaptiveLocationPredictor
+from models.modern_transformer import ModernTransformerPredictor
+from models.deep_transformer import DeepTransformerPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -62,6 +64,10 @@ def get_model(config):
         model = GraphTransitionPredictor(**params)
     elif model_name == 'adaptive':
         model = AdaptiveLocationPredictor(**params)
+    elif model_name == 'modern_transformer':
+        model = ModernTransformerPredictor(**params)
+    elif model_name == 'deep_transformer':
+        model = DeepTransformerPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
