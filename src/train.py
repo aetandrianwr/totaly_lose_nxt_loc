@@ -18,6 +18,8 @@ from models.transformer_model import TransformerNextLocPredictor
 from models.lstm_model import LSTMNextLocPredictor
 from models.gru_attention_model import GRUWithAttention
 from models.enhanced_model import EnhancedNextLocPredictor
+from models.improved_model import ImprovedNextLocPredictor
+from models.transition_model import LocationTransitionModel, FocalLoss
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -42,6 +44,10 @@ def get_model(config):
         model = GRUWithAttention(**params)
     elif model_name == 'enhanced':
         model = EnhancedNextLocPredictor(**params)
+    elif model_name == 'improved':
+        model = ImprovedNextLocPredictor(**params)
+    elif model_name == 'transition':
+        model = LocationTransitionModel(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
@@ -176,7 +182,14 @@ def train(config, args):
         print(f"WARNING: Model has {num_params:,} parameters (>= 500K limit)")
     
     # Loss
-    criterion = nn.CrossEntropyLoss(label_smoothing=config['loss'].get('label_smoothing', 0.0))
+    if config.get('training', {}).get('use_focal_loss', False):
+        criterion = FocalLoss(
+            alpha=config['training'].get('focal_alpha', 0.25),
+            gamma=config['training'].get('focal_gamma', 2.0)
+        )
+        print(f"Using Focal Loss (alpha={config['training'].get('focal_alpha')}, gamma={config['training'].get('focal_gamma')})")
+    else:
+        criterion = nn.CrossEntropyLoss(label_smoothing=config['loss'].get('label_smoothing', 0.0))
     
     # Optimizer
     if config['optimizer']['name'] == 'adamw':
