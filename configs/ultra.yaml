@@ -1,0 +1,68 @@
+# Ultra config with focal loss and mixup
+model:
+  name: "ultra"
+  params:
+    num_locations: 1187
+    num_users: 46
+    embedding_dim: 80
+    num_heads: 8
+    num_layers: 3
+    dropout: 0.25
+
+training:
+  batch_size: 48
+  num_epochs: 300
+  learning_rate: 0.002
+  weight_decay: 0.0002
+  gradient_clip: 1.0
+  early_stopping_patience: 55
+  
+  # Focal loss for class imbalance
+  use_focal_loss: true
+  focal_alpha: 0.25
+  focal_gamma: 2.5
+  
+  # Mixup augmentation
+  use_mixup: true
+  mixup_alpha: 0.2
+  
+  # EMA
+  use_ema: true
+  ema_decay: 0.998
+  
+  # Learning rate schedule
+  lr_scheduler: "cosine_warmup"
+  warmup_epochs: 20
+  
+  # Temporal jittering
+  use_temporal_jitter: true
+  jitter_prob: 0.15
+  
+  # Label smoothing
+  label_smoothing: 0.1
+
+data:
+  train_path: "data/geolife/geolife_transformer_7_train.pk"
+  val_path: "data/geolife/geolife_transformer_7_validation.pk"
+  test_path: "data/geolife/geolife_transformer_7_test.pk"
+  max_seq_len: 60
+  num_workers: 4
+
+optimizer:
+  name: "adamw"
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+loss:
+  label_smoothing: 0.1
+  
+system:
+  seed: 42
+  device: "cuda"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_freq: 5
+  
+logging:
+  use_tensorboard: false
+  print_freq: 50

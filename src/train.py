@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import yaml
 import argparse
@@ -26,6 +27,8 @@ from models.adaptive_model import AdaptiveLocationPredictor
 from models.modern_transformer import ModernTransformerPredictor
 from models.deep_transformer import DeepTransformerPredictor
 from models.advanced_model import AdvancedLocationPredictor
+from models.sota_model import SOTALocationPredictor
+from models.ultra_model import UltraLocationPredictor
 from utils.metrics import calculate_correct_total_prediction, get_performance_dict
 
 
@@ -126,6 +129,10 @@ def get_model(config):
         model = DeepTransformerPredictor(**params)
     elif model_name == 'advanced':
         model = AdvancedLocationPredictor(**params)
+    elif model_name == 'sota':
+        model = SOTALocationPredictor(**params)
+    elif model_name == 'ultra':
+        model = UltraLocationPredictor(**params)
     else:
         raise ValueError(f"Unknown model: {model_name}")
     
@@ -143,6 +150,8 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, ema=N
     
     use_jitter = config['training'].get('use_temporal_jitter', False)
     jitter_prob = config['training'].get('jitter_prob', 0.15)
+    use_mixup = config['training'].get('use_mixup', False)
+    mixup_alpha = config['training'].get('mixup_alpha', 0.2)
     
     pbar = tqdm(train_loader, desc='Training')
     for batch_idx, batch in enumerate(pbar):
@@ -163,7 +172,17 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, ema=N
         # Forward pass
         optimizer.zero_grad()
         logits = model(loc_seq, user_seq, weekday_seq, start_min_seq, dur_seq, diff_seq, seq_len)
-        loss = criterion(logits, targets)
+        
+        # Apply mixup if enabled
+        if use_mixup and random.random() < 0.5:
+            lam = np.random.beta(mixup_alpha, mixup_alpha)
+            indices = torch.randperm(logits.size(0), device=device)
+            mixed_logits = lam * logits + (1 - lam) * logits[indices]
+            mixed_targets = lam * F.one_hot(targets, logits.size(-1)).float() + \
+                           (1 - lam) * F.one_hot(targets[indices], logits.size(-1)).float()
+            loss = -torch.mean(torch.sum(F.log_softmax(mixed_logits, dim=-1) * mixed_targets, dim=-1))
+        else:
+            loss = criterion(logits, targets)
         
         # Backward pass
         loss.backward()
